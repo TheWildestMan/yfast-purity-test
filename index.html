@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Custom Purity Test</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#8ab4ff;--muted:#9aa4b2}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:linear-gradient(180deg,#071023 0%,#081226 100%); color:#e6eef6; margin:0; padding:24px; display:flex; align-items:flex-start; justify-content:center; min-height:100vh;}
+    .wrap{max-width:900px; width:100%;}
+    header{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+    h1{font-size:20px;margin:0}
+    .card{background:rgba(255,255,255,0.03); border-radius:14px; padding:18px; box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    .q{padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.01); margin-bottom:10px; display:flex; gap:12px; align-items:center}
+    .q input[type=checkbox]{transform:scale(1.2)}
+    .controls{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+    button{background:var(--accent); color:#041124; border:0; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600}
+    button.ghost{background:transparent; color:var(--accent); border:1px solid rgba(138,180,255,0.16)}
+    .result{margin-top:14px; padding:12px; border-radius:10px; background:linear-gradient(90deg, rgba(138,180,255,0.06), rgba(138,180,255,0.02)); color:#eaffff}
+    .small{font-size:13px;color:var(--muted)}
+    textarea{width:100%; min-height:90px; border-radius:8px; padding:8px; background:rgba(255,255,255,0.02); color:inherit; border:1px solid rgba(255,255,255,0.03)}
+    .footer{margin-top:10px; font-size:13px; color:var(--muted)}
+    .preview{font-size:13px; color:var(--muted); margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="card" style="padding:8px 12px">
+        <strong>Custom Purity Test</strong>
+      </div>
+      <div style="flex:1"></div>
+    </header>
+
+    <div class="card" id="app">
+      <div id="intro">
+        <p class="small">This is a client-side (offline) copy. Edit the questions array in the script to use your own questions.</p>
+        <div style="margin:8px 0">
+          <label class="small">Paste a set of questions (one per line) to replace current questions:</label>
+          <textarea id="bulkQuestions" placeholder="Put one question per line, then click 'Load Questions'"></textarea>
+          <div class="controls" style="margin-top:8px">
+            <button id="loadBtn">Load Questions</button>
+            <button class="ghost" id="resetBtn">Reset to Example</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="questionList"></div>
+
+      <div class="controls" style="margin-top:12px">
+        <button id="scoreBtn">Calculate Score</button>
+        <button class="ghost" id="clearBtn">Clear All</button>
+        <button class="ghost" id="shuffleBtn">Shuffle Questions</button>
+      </div>
+
+      <div id="result" class="result" style="display:none"></div>
+
+      <div class="footer">
+        <div class="preview">Tip: To add/remove questions permanently, edit the <code>questions</code> array inside the script at the bottom of this HTML file.</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* -----------------------
+   Customize your questions here:
+   Put each question as a string in the array below.
+   ----------------------- */
+let questions = [
+  "Held hands romantically?",
+  "Been on a date?",
+  "Kissed someone?",
+  "Used a dating app?",
+  "Stayed out past 3 AM just for fun?",
+  "Skipped class for non-illness reasons?",
+  "Traveled outside your country?",
+  "Tried a new cuisine this year?",
+  "Sang karaoke in public?",
+  "Gone on a road trip longer than 4 hours?"
+];
+
+/* -------------- end of customizable area -------------- */
+
+const qList = document.getElementById('questionList');
+const resultDiv = document.getElementById('result');
+const bulkInput = document.getElementById('bulkQuestions');
+
+function renderQuestions() {
+  qList.innerHTML = '';
+  questions.forEach((text, i) => {
+    const d = document.createElement('div'); d.className = 'q';
+    const chk = document.createElement('input'); chk.type='checkbox'; chk.id='q'+i;
+    const lab = document.createElement('label'); lab.htmlFor='q'+i; lab.style.flex='1'; lab.innerText = text;
+    const edit = document.createElement('button'); edit.className='ghost'; edit.type='button'; edit.innerText='Edit';
+    edit.onclick = ()=> {
+      const newQ = prompt('Edit question:', text);
+      if(newQ!==null){ questions[i] = newQ.trim() || questions[i]; renderQuestions(); }
+    };
+    const del = document.createElement('button'); del.className='ghost'; del.style.borderColor='rgba(255,0,0,0.12)'; del.type='button'; del.innerText='Delete';
+    del.onclick = ()=> { if(confirm('Delete this question?')){ questions.splice(i,1); renderQuestions(); } };
+    d.appendChild(chk); d.appendChild(lab); d.appendChild(edit); d.appendChild(del);
+    qList.appendChild(d);
+  });
+}
+
+function calculateScore() {
+  const checks = [...qList.querySelectorAll('input[type=checkbox]')].filter(c=>c.checked).length;
+  const total = questions.length;
+  const score = total - checks; // similar to rice purity: more checked → lower purity
+  const percent = Math.round((score/total)*100);
+  resultDiv.style.display='block';
+  resultDiv.innerHTML = `<strong>Score: ${score} / ${total}</strong><div class="small" style="margin-top:6px">Purity: ${percent}%<br>${interpret(percent)}</div>`;
+}
+
+function interpret(p) {
+  if(p>90) return "Extremely pure";
+  if(p>75) return "Very pure";
+  if(p>50) return "Somewhat pure";
+  if(p>30) return "Not very pure";
+  return "Wild times.";
+}
+
+document.getElementById('scoreBtn').onclick = calculateScore;
+document.getElementById('clearBtn').onclick = ()=> {
+  qList.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false);
+  resultDiv.style.display='none';
+};
+document.getElementById('shuffleBtn').onclick = ()=> {
+  for(let i=questions.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [questions[i],questions[j]]=[questions[j],questions[i]]; }
+  renderQuestions();
+  resultDiv.style.display='none';
+};
+document.getElementById('loadBtn').onclick = ()=> {
+  const raw = bulkInput.value.trim();
+  if(!raw){ alert('Paste questions first (one per line).'); return; }
+  const lines = raw.split(/\r?\n/).map(s=>s.trim()).filter(s=>s);
+  if(lines.length<1){ alert('Need at least one question.'); return; }
+  if(!confirm(`Replace current ${questions.length} questions with ${lines.length} questions?`)) return;
+  questions = lines;
+  renderQuestions();
+  resultDiv.style.display='none';
+};
+document.getElementById('resetBtn').onclick = ()=> {
+  if(!confirm('Reset to default example questions?')) return;
+  questions = [
+    "Held hands romantically?",
+    "Been on a date?",
+    "Kissed someone?",
+    "Used a dating app?",
+    "Stayed out past 3 AM just for fun?",
+    "Skipped class for non-illness reasons?",
+    "Traveled outside your country?",
+    "Tried a new cuisine this year?",
+    "Sang karaoke in public?",
+    "Gone on a road trip longer than 4 hours?"
+  ];
+  renderQuestions();
+  resultDiv.style.display='none';
+};
+
+renderQuestions();
+
+/* Optional: keyboard shortcut to export JSON of questions for backup */
+document.addEventListener('keydown', e=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='e'){
+    e.preventDefault();
+    const blob = new Blob([JSON.stringify(questions, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='questions.json'; document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+});
+</script>
+</body>
+</html>
